@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Added servers</h1>
+
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" class="form-control" name="search" placeholder="Search by IP" value="{{ search_query }}">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+    </form>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>IP</th>
+                <th>Port</th>
+                <th>MOTD</th>
+                <th>Version</th>
+                <th>Max players</th>
+                <th>Core</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for server in servers %}
+                <tr>
+                    <td>{{ server.ip }}</td>
+                    <td>{{ server.port }}</td>
+                    <td>{{ server.motd }}</td>
+                    <td>{{ server.version }}</td>
+                    <td>{{ server.max_players }}</td>
+                    <td>{{ server.core }}</td>
+                    <td>
+                        <a href="{% url 'remove_server' server.ip %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove this server?');">Remove</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No servers found</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

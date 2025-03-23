@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Watcher</h1>
+
+    <form method="post" action="{% url 'add_server' %}">
+        {% csrf_token %}
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="IP" name="ip" required>
+            <input type="number" class="form-control" placeholder="Port" name="port" required>
+            <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+    </form>
+
+{% endblock %}

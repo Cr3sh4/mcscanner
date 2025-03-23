@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <h1 class="my-4">Minecraft Server Analytics Dashboard</h1>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Total Servers</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ total_servers }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Total Players</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ total_players }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Total Play Time</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ total_play_time_hours|floatformat:2 }} hours</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-header">Recent Sessions</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ recent_sessions_count }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-area mr-1"></i>
+                    Server Population Analytics
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Server IP</th>
+                                <th>Peak Online</th>
+                                <th>Avg Online</th>
+                                <th>Total Sessions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for server_data in server_population_analytics %}
+                            <tr>
+                                <td>{{ server_data.server.ip }}:{{ server_data.server.port }}</td>
+                                <td>{{ server_data.peak_online }}</td>
+                                <td>{{ server_data.avg_online }}</td>
+                                <td>{{ server_data.total_sessions }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Online History Graph -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-line mr-1"></i>
+                    Online Players History (Last 24 Hours)
+                    <select id="serverSelector" class="float-right custom-select w-auto">
+                        <option value="" disabled selected>Select a server</option>
+                        {% for server_data in server_population_analytics %}
+                        <option value="{{ server_data.server.ip }}:{{ server_data.server.port }}">
+                            {{ server_data.server.ip }}:{{ server_data.server.port }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card-body">
+                    <canvas id="onlineHistoryChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-users mr-1"></i>
+                    Top 10 Players by Playtime
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nickname</th>
+                                <th>Play Hours</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in top_players %}
+                            <tr>
+                                <td>{{ player.nickname }}</td>
+                                <td>{{ player.total_play_hours|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script>
+    // Chart
+    const onlineHistoryData = {{ online_history_data|safe }};
+    const ctx = document.getElementById('onlineHistoryChart').getContext('2d');
+
+    // Initialize Chart
+    const onlineHistoryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: []
+        },
+        options: {
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'hour',
+                        displayFormats: {
+                            hour: 'MMM d, h a'
+                        },
+                        min: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+                        max: new Date() // Current time
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Online Players'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // Event listener for server selection
+    const serverSelector = document.getElementById('serverSelector');
+    serverSelector.addEventListener('change', function() {
+        const selectedServer = this.value;
+        const serverData = onlineHistoryData.find(server => `${server.ip}:${server.port}` === selectedServer);
+
+        // Update chart data
+        onlineHistoryChart.data.datasets = [{
+            label: selectedServer,
+            data: serverData.history.map(entry => ({
+                x: new Date(entry.timestamp),
+                y: entry.online
+            })),
+            borderColor: getRandomColor(),
+            fill: false
+        }];
+        onlineHistoryChart.update();
+    });
+
+    // Random colors for chart
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+
+
+</script>
+{% endblock %}
