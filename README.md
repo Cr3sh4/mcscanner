@@ -54,7 +54,7 @@ python manage.py runserver
 http://127.0.0.1:8000/
 ```
 
-## Features in Detail
+![Description](https://i.imgur.com/sfBlnCo.png)
 
 ### Server Monitoring
 - Track multiple Minecraft servers simultaneously
